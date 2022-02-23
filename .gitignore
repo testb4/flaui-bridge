@@ -1,0 +1,11 @@
+.gradle
+.idea
+.vs
+build
+packages
+*.iml
+*/bin/
+*/obj/
+packages/
+gradle\.properties
+.DS_Store

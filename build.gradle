@@ -1,0 +1,78 @@
+buildscript {
+    ext.repositoriesClosure = {
+        mavenLocal()
+        mavenCentral()
+    }
+    repositories repositoriesClosure
+}
+
+group = "io.testb4"
+version = '0.1.13'
+
+group rootProject.group
+version rootProject.version
+
+apply plugin: "java"
+apply plugin: "application"
+apply plugin: 'maven-publish'
+
+repositories repositoriesClosure
+
+sourceSets {
+    generated
+}
+
+dependencies {
+    generatedCompile configurations.compile
+    compile group: 'net.sf.jni4net', name: 'jni4net.j', version: '0.8.9.0'
+    testCompile sourceSets.generated.output
+}
+
+task dllJar(type:Jar) {
+    from('FlaUI.Bridge/bin/Debug') {
+        include '*.dll'
+    }
+    from('build/proxy') {
+        include 'jni4net.n.*.dll'
+    }
+    classifier 'dll'
+}
+
+jar {
+    from sourceSets.generated.output
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from(components.java)
+            artifact dllJar
+        }
+    }
+
+    repositories {
+        if (project.hasProperty('PUBLISH_URL')) {
+            maven {
+                name 'artifactory'
+                url PUBLISH_URL
+                credentials {
+                    username PUBLISH_USER
+                    password PUBLISH_PASSWORD
+                }
+            }
+        }
+    }
+}
+
+def dllDir = new File(buildDir, 'testDll')
+
+task unpackDll(type:  Copy.class, dependsOn: dllJar) {
+    from project.zipTree(dllJar.archivePath)
+    into dllDir
+}
+
+run {
+    dependsOn unpackDll
+    classpath dllDir, sourceSets.test.output, configurations.testCompile
+    mainClassName = 'Dene'
+}
